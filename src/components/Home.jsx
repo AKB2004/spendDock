@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
   const [isDark, setIsDark] = useState(true);
+  const navigate = useNavigate();
   const canvasRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const rotationRef = useRef({ x: 0, y: 0 });
@@ -211,7 +213,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-300 rounded-xl flex items-center justify-center shadow-lg">
+              <div
+              onClick={() => navigate('/')}
+              className="w-10 h-10 bg-gradient-to-br from-white to-gray-800 rounded-xl flex items-center justify-center shadow-lg cursor-pointer">
                 <span className={`font-bold text-xl ${isDark ? 'text-black' : 'text-white'}`}>S</span>
               </div>
               <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-black'}`}>
@@ -232,10 +236,14 @@ export default function Home() {
               <a href="#pricing" className={`${isDark ? 'text-white/80 hover:text-white' : 'text-black/80 hover:text-black'} transition`}>
                 Pricing
               </a>
-              <button className={`px-6 py-2.5 rounded-xl ${isDark ? 'text-white/80 hover:text-white' : 'text-black/80 hover:text-black'} transition`}>
+              <button
+              onClick={() => navigate('/auth')}
+              className={`px-6 py-2.5 rounded-xl ${isDark ? 'text-white/80 hover:text-white cursor-pointer' : 'text-black/80 hover:text-black cursor-pointer'} transition`}>
                 Sign In
               </button>
-              <button className={`px-6 py-2.5 rounded-xl ${isDark ? 'bg-white text-black hover:shadow-2xl hover:shadow-white/20 cursor-pointer' : 'bg-black text-white hover:shadow-2xl hover:shadow-black/20 cursor-pointer'} font-medium transition`}>
+              <button 
+              onClick={() => navigate('/auth')}
+              className={`px-6 py-2.5 rounded-xl ${isDark ? 'bg-white text-black hover:shadow-2xl hover:shadow-white/20 cursor-pointer' : 'bg-black text-white hover:shadow-2xl hover:shadow-black/20 cursor-pointer'} font-medium transition`}>
                 Get Started
               </button>
             </div>
@@ -387,3 +395,4 @@ export default function Home() {
     </div>
   );
 }
+
