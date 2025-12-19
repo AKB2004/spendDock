@@ -1,11 +1,8 @@
 import React from 'react'
+import Home from './components/Home'
 
 function App() {
-  return (
-    <div class="text-blue-800">
-      Spenddock
-    </div>
-  )
+  return <Home />
 }
 
 export default App
