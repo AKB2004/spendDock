@@ -49,9 +49,8 @@ In traditional businesses, accountants manually process hundreds of invoices —
 |--------|----------|
 | Adarsh Priyadarshi | Backend + ML |
 | Abhinash Kumar Bej | Frontend |
-| Amaan Mushtaque | Frontend + ML |
 | Vivek SH | Backend |
-
+| Amaan Mushtaque | Frontend + ML |
 ---
 
 ## 📁 Project Structure
