@@ -94,3 +94,31 @@ export async function fetchVendorStats(companyId) {
 
   return response.json();
 }
+
+export async function managerReviewInvoice(invoiceId, status) {
+  const response = await fetch(`${BASE_URL}/client/review`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      invoiceId,
+      status,
+      comment: status === "ACCEPTED" ? "Approved by manager" : "Rejected by manager"
+    })
+  });
+  if (!response.ok) throw new Error("Failed to review invoice");
+  return response.json();
+}
+
+export async function clientReviewInvoice(invoiceId, status) {
+  const response = await fetch(`${BASE_URL}/client/client-review`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      invoiceId,
+      status,
+      comment: status === "ACCEPTED" ? "Approved by client" : "Rejected by client"
+    })
+  });
+  if (!response.ok) throw new Error("Failed to review invoice");
+  return response.json();
+}

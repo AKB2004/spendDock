@@ -69,9 +69,9 @@ const handleSubmit = async () => {
     // Route based on role
     if (profile.role === "manager" || profile.role === "accountant") {
       navigate("/vendor");
-    } else if (profile.role === "client") {
-      navigate("/client");
-    } else {
+    }  else if (profile.role === "client_manager" || profile.role === "client_accountant") {
+        navigate("/client");
+} else {
       alert("Unknown role");
     }
 

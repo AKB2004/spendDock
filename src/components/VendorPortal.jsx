@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fetchVendorInvoices, uploadInvoice, fetchVendorStats } from "../services/api";
+import { fetchVendorInvoices, uploadInvoice, fetchVendorStats, managerReviewInvoice } from "../services/api";
 import { supabase } from "../services/supabaseClient";
 
 export default function VendorPortal() {
@@ -14,6 +14,7 @@ export default function VendorPortal() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(null);
 
   const fetchInvoices = async () => {
     try {
@@ -36,11 +37,24 @@ export default function VendorPortal() {
   useEffect(() => {
     fetchInvoices();
     fetchStats();
-    // Get email from Supabase session for Settings tab
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user?.email) setUserEmail(data.user.email);
     });
   }, []);
+
+  const handleManagerReview = async (invoiceId, status) => {
+    try {
+      setReviewLoading(invoiceId + status);
+      await managerReviewInvoice(invoiceId, status);
+      await fetchInvoices();
+      await fetchStats();
+    } catch (err) {
+      console.error("Review error:", err);
+      alert("Review failed");
+    } finally {
+      setReviewLoading(null);
+    }
+  };
 
   const stats = statsData
     ? [
@@ -59,9 +73,9 @@ export default function VendorPortal() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "paid": return isDark ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-green-100 text-green-700 border-green-300";
-      case "approved": return isDark ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-blue-100 text-blue-700 border-blue-300";
+      case "accepted": return isDark ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-blue-100 text-blue-700 border-blue-300";
       case "pending": return isDark ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" : "bg-yellow-100 text-yellow-700 border-yellow-300";
-      case "processing": return isDark ? "bg-purple-500/20 text-purple-400 border-purple-500/30" : "bg-purple-100 text-purple-700 border-purple-300";
+      case "rejected": return isDark ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-red-100 text-red-700 border-red-300";
       default: return isDark ? "bg-white/10 text-white/60" : "bg-gray-100 text-gray-600";
     }
   };
@@ -106,7 +120,6 @@ export default function VendorPortal() {
     }
   };
 
-  // ── Analytics: compute derived stats from real data ──
   const paidInvoices = invoices.filter(i => i.paymentStatus === "PAID");
   const pendingInvoices = invoices.filter(i => i.reviewStatus === "PENDING");
   const acceptedInvoices = invoices.filter(i => i.reviewStatus === "ACCEPTED");
@@ -132,16 +145,13 @@ export default function VendorPortal() {
                 <p className={`text-xs ${isDark ? "text-white/50" : "text-black/50"}`}>Vendor Portal</p>
               </div>
             </div>
-
             <div className="flex items-center space-x-4">
-              {/* Theme toggle — notification button removed */}
               <button
                 onClick={() => setIsDark(!isDark)}
                 className={`p-2.5 rounded-xl backdrop-blur-xl ${isDark ? "bg-white/10 hover:bg-white/20" : "bg-black/10 hover:bg-black/20"} transition border ${isDark ? "border-white/20" : "border-black/20"}`}
               >
                 <span className="text-lg">{isDark ? "☀️" : "🌙"}</span>
               </button>
-
               <div className={`flex items-center space-x-3 px-4 py-2 rounded-xl backdrop-blur-xl ${isDark ? "bg-white/10" : "bg-black/10"} border ${isDark ? "border-white/20" : "border-black/20"}`}>
                 <div className={`w-9 h-9 rounded-lg ${isDark ? "bg-white/20" : "bg-black/20"} flex items-center justify-center`}>
                   <span className="text-lg">👤</span>
@@ -166,6 +176,7 @@ export default function VendorPortal() {
               { id: "dashboard", icon: "📊", label: "Dashboard" },
               { id: "invoices", icon: "📄", label: "My Invoices" },
               ...(role === "accountant" ? [{ id: "upload", icon: "📤", label: "Upload New" }] : []),
+              ...(role === "manager" ? [{ id: "review", icon: "🔍", label: "Review Invoices" }] : []),
               { id: "payments", icon: "💳", label: "Payments" },
               { id: "analytics", icon: "📈", label: "Analytics" },
               { id: "settings", icon: "⚙️", label: "Settings" },
@@ -205,7 +216,7 @@ export default function VendorPortal() {
             <p className={`text-lg ${isDark ? "text-white/60" : "text-black/60"}`}>Track your invoices and manage payments</p>
           </div>
 
-          {/* ── Dashboard ── */}
+          {/* Dashboard */}
           {activeTab === "dashboard" && (
             <>
               <div className="grid grid-cols-4 gap-6 mb-8">
@@ -221,7 +232,6 @@ export default function VendorPortal() {
                 ))}
               </div>
 
-              {/* Invite Accountant — only visible to manager */}
               {role === "manager" && (
                 <div className={`backdrop-blur-xl ${isDark ? "bg-white/5" : "bg-black/5"} rounded-2xl p-6 border ${isDark ? "border-white/10" : "border-black/10"} mb-6`}>
                   <h2 className={`text-xl font-semibold mb-4 ${isDark ? "text-white" : "text-black"}`}>Invite Accountant</h2>
@@ -236,7 +246,7 @@ export default function VendorPortal() {
                     <button
                       onClick={handleInvite}
                       disabled={inviteLoading}
-                      className={`px-4 py-2 rounded font-medium ${isDark ? "bg-white text-black" : "bg-black text-white"}`}
+                      className={`px-4 py-2 rounded font-medium transition disabled:opacity-50 ${isDark ? "bg-white text-black hover:bg-white/90" : "bg-black text-white hover:bg-black/90"}`}
                     >
                       {inviteLoading ? "Sending..." : "Invite Accountant"}
                     </button>
@@ -244,12 +254,9 @@ export default function VendorPortal() {
                 </div>
               )}
 
-              {/* Recent Activity */}
               <div className={`backdrop-blur-xl ${isDark ? "bg-white/5" : "bg-black/5"} rounded-2xl border ${isDark ? "border-white/10" : "border-black/10"} overflow-hidden mb-8`}>
                 <div className="p-6 border-b border-white/10">
-                  <div className="flex justify-between items-center">
-                    <h3 className={`text-2xl font-bold ${isDark ? "text-white" : "text-black"}`}>Recent Invoice Activity</h3>
-                  </div>
+                  <h3 className={`text-2xl font-bold ${isDark ? "text-white" : "text-black"}`}>Recent Invoice Activity</h3>
                 </div>
                 <div className="divide-y divide-white/10">
                   {invoices.slice(0, 6).map((invoice) => (
@@ -280,7 +287,57 @@ export default function VendorPortal() {
             </>
           )}
 
-          {/* ── Upload ── */}
+          {/* Review Invoices (Manager only) */}
+          {activeTab === "review" && role === "manager" && (
+            <div className="space-y-4">
+              <h2 className={`text-3xl font-bold ${isDark ? "text-white" : "text-black"} mb-6`}>Review Invoices</h2>
+              {pendingInvoices.length === 0 ? (
+                <div className={`p-8 rounded-2xl border text-center ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
+                  <div className="text-4xl mb-3">✅</div>
+                  <p className={`text-lg font-medium ${isDark ? "text-white" : "text-black"}`}>All caught up!</p>
+                  <p className={`text-sm ${isDark ? "text-white/50" : "text-black/50"}`}>No pending invoices to review</p>
+                </div>
+              ) : (
+                pendingInvoices.map((invoice) => (
+                  <div key={invoice.id} className={`p-6 rounded-2xl border ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-14 h-14 rounded-xl ${isDark ? "bg-white/10" : "bg-black/10"} flex items-center justify-center`}>
+                          <span className="text-2xl">📄</span>
+                        </div>
+                        <div>
+                          <div className={`font-bold text-lg ${isDark ? "text-white" : "text-black"}`}>{invoice.invoiceNumber}</div>
+                          <div className={`text-sm ${isDark ? "text-white/60" : "text-black/60"}`}>Vendor: {invoice.vendorName}</div>
+                          <div className={`text-sm ${isDark ? "text-white/60" : "text-black/60"}`}>Date: {invoice.invoiceDate}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${isDark ? "text-white" : "text-black"} mb-3`}>₹ {invoice.grandTotal}</div>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleManagerReview(invoice.id, "ACCEPTED")}
+                            disabled={reviewLoading === invoice.id + "ACCEPTED"}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {reviewLoading === invoice.id + "ACCEPTED" ? "Accepting..." : "✓ Accept"}
+                          </button>
+                          <button
+                            onClick={() => handleManagerReview(invoice.id, "REJECTED")}
+                            disabled={reviewLoading === invoice.id + "REJECTED"}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {reviewLoading === invoice.id + "REJECTED" ? "Rejecting..." : "✗ Reject"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Upload */}
           {activeTab === "upload" && role === "accountant" && (
             <div className={`backdrop-blur-xl ${isDark ? "bg-gradient-to-br from-white/10 to-white/5" : "bg-gradient-to-br from-black/10 to-black/5"} rounded-2xl p-8 border ${isDark ? "border-white/20" : "border-black/20"} mb-8`}>
               <div className="flex items-center justify-between">
@@ -294,15 +351,22 @@ export default function VendorPortal() {
                   <div className={`${isDark ? "text-white/80" : "text-black/80"} text-sm`}>
                     {selectedFile ? selectedFile.name : "No file selected"}
                   </div>
-                  <button onClick={handleUpload} disabled={uploading} className="px-6 py-3 bg-black text-white rounded-xl font-medium transition">
-                    {uploading ? "Uploading..." : "Upload"}
-                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                    <button onClick={handleUpload} disabled={uploading} className="px-6 py-3 bg-black text-white rounded-xl font-medium transition disabled:opacity-50">
+                      {uploading ? "🤖 AI Extracting..." : "Upload"}
+                    </button>
+                    {uploading && (
+                      <p className={`text-xs ${isDark ? "text-white/60" : "text-black/60"}`}>
+                        AI model is processing. This may take up to a minute...
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── My Invoices ── */}
+          {/* My Invoices */}
           {activeTab === "invoices" && (
             <div className="space-y-4">
               {invoices.length === 0 ? (
@@ -327,7 +391,7 @@ export default function VendorPortal() {
             </div>
           )}
 
-          {/* ── Payments ── */}
+          {/* Payments */}
           {activeTab === "payments" && (
             <div>
               <h2 className={`text-2xl mb-4 font-bold ${isDark ? "text-white" : "text-black"}`}>Paid Invoices</h2>
@@ -346,12 +410,10 @@ export default function VendorPortal() {
             </div>
           )}
 
-          {/* ── Analytics ── */}
+          {/* Analytics */}
           {activeTab === "analytics" && (
             <div className="space-y-6">
               <h2 className={`text-3xl font-bold ${isDark ? "text-white" : "text-black"}`}>Analytics Overview</h2>
-
-              {/* Summary cards */}
               <div className="grid grid-cols-3 gap-6">
                 {[
                   { label: "Approval Rate", value: approvalRate + "%", icon: "✅", color: "text-green-400" },
@@ -365,8 +427,6 @@ export default function VendorPortal() {
                   </div>
                 ))}
               </div>
-
-              {/* Invoice breakdown bar */}
               <div className={`p-6 rounded-2xl border backdrop-blur-xl ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>Invoice Status Breakdown</h3>
                 {invoices.length === 0 ? (
@@ -385,18 +445,14 @@ export default function VendorPortal() {
                           <span className={`text-sm ${isDark ? "text-white/60" : "text-black/60"}`}>{row.count} invoice{row.count !== 1 ? "s" : ""}</span>
                         </div>
                         <div className={`h-3 rounded-full ${isDark ? "bg-white/10" : "bg-black/10"} overflow-hidden`}>
-                          <div
-                            className={`h-full rounded-full ${row.color} transition-all duration-700`}
-                            style={{ width: invoices.length > 0 ? `${(row.count / invoices.length) * 100}%` : "0%" }}
-                          />
+                          <div className={`h-full rounded-full ${row.color} transition-all duration-700`}
+                            style={{ width: invoices.length > 0 ? `${(row.count / invoices.length) * 100}%` : "0%" }} />
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
-              {/* AI Performance card */}
               <div className={`p-6 rounded-2xl border backdrop-blur-xl ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>🤖 AI Performance</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -415,12 +471,10 @@ export default function VendorPortal() {
             </div>
           )}
 
-          {/* ── Settings ── */}
+          {/* Settings */}
           {activeTab === "settings" && (
             <div className="space-y-6 max-w-2xl">
               <h2 className={`text-3xl font-bold ${isDark ? "text-white" : "text-black"}`}>Settings</h2>
-
-              {/* Profile card */}
               <div className={`p-6 rounded-2xl border backdrop-blur-xl ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>👤 Profile Information</h3>
                 <div className="space-y-4">
@@ -437,25 +491,19 @@ export default function VendorPortal() {
                   ))}
                 </div>
               </div>
-
-              {/* App settings card */}
               <div className={`p-6 rounded-2xl border backdrop-blur-xl ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>🎨 Appearance</h3>
-                <div className={`flex justify-between items-center py-3`}>
+                <div className="flex justify-between items-center py-3">
                   <div>
                     <p className={`text-sm font-medium ${isDark ? "text-white" : "text-black"}`}>Dark Mode</p>
                     <p className={`text-xs ${isDark ? "text-white/50" : "text-black/50"}`}>Toggle between dark and light theme</p>
                   </div>
-                  <button
-                    onClick={() => setIsDark(!isDark)}
-                    className={`w-12 h-6 rounded-full transition-colors duration-300 ${isDark ? "bg-white" : "bg-black"} relative`}
-                  >
+                  <button onClick={() => setIsDark(!isDark)}
+                    className={`w-12 h-6 rounded-full transition-colors duration-300 ${isDark ? "bg-white" : "bg-black"} relative`}>
                     <div className={`w-5 h-5 rounded-full absolute top-0.5 transition-all duration-300 ${isDark ? "bg-black right-0.5" : "bg-white left-0.5"}`} />
                   </button>
                 </div>
               </div>
-
-              {/* System info card */}
               <div className={`p-6 rounded-2xl border backdrop-blur-xl ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>ℹ️ System Information</h3>
                 <div className="space-y-3">
