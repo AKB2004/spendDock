@@ -65,6 +65,11 @@ export default function ClientPortal() {
     { icon: "⚙️", text: "Processing Payment Securely..." },
     { icon: "✅", text: "Payment Successful!" },
   ];
+
+  // Client accountant only sees invoices approved by client manager
+  const visibleInvoices = role === "client_accountant"
+  ? invoices.filter(i => i.clientStatus === "ACCEPTED" || i.paymentStatus === "PAID")
+  : invoices;
   
   const pendingCount = invoices.filter(i => i.clientStatus === "PENDING").length;
   const approvedCount = invoices.filter(i => i.clientStatus === "ACCEPTED").length;
@@ -204,14 +209,14 @@ export default function ClientPortal() {
 
         {/* Invoice list */}
         <div className="space-y-4">
-          {invoices.length === 0 ? (
+          {visibleInvoices.length === 0 ? (
             <div className={`p-12 rounded-2xl border text-center ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
               <div className="text-5xl mb-4">📭</div>
               <p className={`text-xl font-bold ${isDark ? "text-white" : "text-black"} mb-2`}>No invoices yet</p>
               <p className={`text-sm ${isDark ? "text-white/50" : "text-black/50"}`}>Invoices approved by the vendor manager will appear here</p>
             </div>
           ) : (
-            invoices.map((invoice) => (
+            visibleInvoices.map((invoice) => (
               <div key={invoice.id} className={`rounded-2xl border backdrop-blur-xl overflow-hidden ${isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}`}>
 
                 {/* Invoice card top */}
