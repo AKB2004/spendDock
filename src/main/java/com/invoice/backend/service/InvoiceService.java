@@ -15,6 +15,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,10 +32,6 @@ public class InvoiceService {
     @Value("${ai.service.url}")
     private String aiServiceUrl;
 
-    // ─────────────────────────────────────────────
-    // These stay hardcoded for demo — company IDs
-    // are fixed for the project scope
-    // ─────────────────────────────────────────────
     private static final UUID UPLOADER_COMPANY_ID =
             UUID.fromString("a919b2cb-5110-45aa-931b-6b896e9f7f5a");
     private static final UUID RECEIVER_COMPANY_ID =
@@ -39,7 +39,6 @@ public class InvoiceService {
 
     public Invoice uploadAndExtract(MultipartFile file) {
 
-        // ── Step 1: Send PDF to FastAPI AI model ──
         Map<String, Object> extractedData = callAiService(file);
 
         // ── Step 2: Parse response ──
@@ -48,10 +47,9 @@ public class InvoiceService {
         String dateStr       = (String) extractedData.get("invoice_date");
         Number grandTotalNum = (Number) extractedData.get("grand_total");
 
-        LocalDate invoiceDate = LocalDate.parse(dateStr);
+        LocalDate invoiceDate = parseFlexibleDate(dateStr);
         BigDecimal grandTotal = BigDecimal.valueOf(grandTotalNum.doubleValue());
 
-        // ── Step 3: Save to DB ──
         Invoice invoice = Invoice.builder()
                 .uploaderCompanyId(UPLOADER_COMPANY_ID)
                 .receiverCompanyId(RECEIVER_COMPANY_ID)
@@ -61,12 +59,72 @@ public class InvoiceService {
                 .grandTotal(grandTotal)
                 .build();
 
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+
+        ingestIntoChatbot(file);
+
+        return saved;
     }
 
-    // ─────────────────────────────────────────────
-    // Sends PDF to FastAPI and returns extracted fields
-    // ─────────────────────────────────────────────
+    private LocalDate parseFlexibleDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            System.err.println("Date string is null or blank — using today's date");
+            return LocalDate.now();
+        }
+
+        List<DateTimeFormatter> formatters = List.of(
+                DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("d MMMM yyyy",  Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("dd MMM yyyy",  Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("d MMM yyyy",   Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+                DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+                DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        );
+
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDate.parse(dateStr.trim(), formatter);
+            } catch (DateTimeParseException ignored) {}
+        }
+
+        System.err.println("Could not parse date: '" + dateStr + "' — using today's date");
+        return LocalDate.now();
+    }
+
+    private void ingestIntoChatbot(MultipartFile file) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename();
+                }
+            };
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", fileResource);
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity =
+                    new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    aiServiceUrl + "/ingest",
+                    HttpMethod.POST,
+                    requestEntity,
+                    Map.class
+            );
+
+            System.out.println("Chatbot ingestion result: " + response.getBody());
+
+        } catch (Exception e) {
+            System.err.println("Chatbot ingestion failed (non-fatal): " + e.getMessage());
+        }
+    }
+
     private Map<String, Object> callAiService(MultipartFile file) {
         try {
             HttpHeaders headers = new HttpHeaders();

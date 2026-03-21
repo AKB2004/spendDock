@@ -26,7 +26,7 @@ public class VendorController {
     public ResponseEntity<List<Invoice>> getInvoicesByUploader(
             @RequestParam UUID companyId
     ) {
-        List<Invoice> invoices = invoiceRepository.findByUploaderCompanyId(companyId);
+        List<Invoice> invoices = invoiceRepository.findByUploaderCompanyIdOrderByCreatedAtDesc(companyId);
         return ResponseEntity.ok(invoices);
     }
 

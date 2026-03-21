@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
+
     @Query(value = """
     SELECT
         COUNT(*) AS totalInvoices,
@@ -23,7 +24,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     """, nativeQuery = true)
     List<Object[]> getVendorStats(@Param("companyId") UUID companyId);
 
-    List<Invoice> findByUploaderCompanyId(UUID uploaderCompanyId);
+    List<Invoice> findByReceiverCompanyIdAndReviewStatusOrderByCreatedAtDesc(UUID receiverCompanyId, String reviewStatus);
 
+    List<Invoice> findByUploaderCompanyIdOrderByCreatedAtDesc(UUID uploaderCompanyId);
+    List<Invoice> findByReceiverCompanyIdOrderByCreatedAtDesc(UUID receiverCompanyId);
+    List<Invoice> findByUploaderCompanyId(UUID uploaderCompanyId);
     List<Invoice> findByReceiverCompanyId(UUID receiverCompanyId);
 }

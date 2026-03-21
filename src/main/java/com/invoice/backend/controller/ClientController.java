@@ -24,8 +24,23 @@ public class ClientController {
 
     @GetMapping("/invoices")
     public ResponseEntity<List<Invoice>> getInvoicesByReceiver() {
-        List<Invoice> invoices = invoiceRepository.findByReceiverCompanyId(RECEIVER_COMPANY_ID);
+        List<Invoice> invoices = invoiceRepository
+                .findByReceiverCompanyIdAndReviewStatusOrderByCreatedAtDesc(
+                        RECEIVER_COMPANY_ID, "ACCEPTED");
         return ResponseEntity.ok(invoices);
+    }
+
+    // ── Client approve/reject — uses clientStatus field ──
+    @PatchMapping("/client-review")
+    public ResponseEntity<Invoice> clientReviewInvoice(@RequestBody ReviewRequest request) {
+        Invoice invoice = invoiceRepository.findById(request.getInvoiceId())
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+
+        invoice.setClientStatus(request.getStatus());
+        invoice.setReviewComment(request.getComment());
+
+        Invoice saved = invoiceRepository.save(invoice);
+        return ResponseEntity.ok(saved);
     }
 
     @PatchMapping("/payment")
@@ -36,10 +51,10 @@ public class ClientController {
         invoice.setPaymentStatus(request.getPaymentStatus());
 
         Invoice saved = invoiceRepository.save(invoice);
-
         return ResponseEntity.ok(saved);
     }
 
+    // ── Manager review — uses reviewStatus field ──
     @PatchMapping("/review")
     public ResponseEntity<Invoice> reviewInvoice(@RequestBody ReviewRequest request) {
         Invoice invoice = invoiceRepository.findById(request.getInvoiceId())
@@ -49,7 +64,6 @@ public class ClientController {
         invoice.setReviewComment(request.getComment());
 
         Invoice saved = invoiceRepository.save(invoice);
-
         return ResponseEntity.ok(saved);
     }
 }

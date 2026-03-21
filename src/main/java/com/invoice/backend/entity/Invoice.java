@@ -54,6 +54,10 @@ public class Invoice {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "client_status")
+    @Builder.Default
+    private String clientStatus = "PENDING";
+
     @PrePersist
     protected void prePersist() {
         this.createdAt = Instant.now();
