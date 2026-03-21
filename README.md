@@ -49,9 +49,8 @@ In traditional businesses, accountants manually process hundreds of invoices —
 |--------|----------|
 | Adarsh Priyadarshi | Backend + ML |
 | Abhinash Kumar Bej | Frontend |
-| Amaan Mushtaque | Frontend + ML |
 | Vivek SH | Backend |
-
+| Amaan Mushtaque | Frontend + ML |
 ---
 
 ## 📁 Project Structure
@@ -110,8 +109,4 @@ VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 
 ---
 
-## 📌 Version Note
-> ⚠️ This is the **AI-integrated version** of SpendDock.
-
----
 *Final Year Project — 2026*
