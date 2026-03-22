@@ -1,111 +1,189 @@
 # 💼 SpendDock — AI-Powered Invoice Management System
-> Final Year Project | B2B Invoice Processing Platform
 
-SpendDock is a B2B invoice management platform designed to reduce the manual workload of accountants and finance teams. It streamlines the entire invoice lifecycle — from vendor submission to client approval and payment tracking — using AI-powered data extraction.
+**Final Year Project | B2B Invoice Processing Platform**
+
+SpendDock is a B2B invoice management system that automates the entire invoice lifecycle — from vendor submission to approval and payment — using an AI model for intelligent data extraction.
 
 ---
 
-## 🚀 What SpendDock Does
+## 🚀 Overview
 
-In traditional businesses, accountants manually process hundreds of invoices — extracting data, verifying details, chasing approvals, and tracking payments. SpendDock automates this entire workflow:
+In many organizations, invoice processing is manual, slow, and error-prone. SpendDock eliminates this by introducing an AI-powered workflow that:
 
-- 📤 **Vendors** upload invoices (PDF) through their portal
-- 🤖 **AI** automatically extracts invoice data (vendor name, amount, date, items)
-- 👔 **Clients (Company B)** review, approve or reject invoices
-- 💳 **Payments** are tracked and marked as paid
-- 📊 **Managers** get a full overview of all invoice activity
-- 📧 **Email invites** allow companies to onboard vendors seamlessly
+* Extracts invoice data automatically
+* Streamlines multi-level approvals
+* Tracks invoice and payment status
+* Reduces manual workload for accountants
+
+---
+
+## ⭐ Key Features
+
+* 🤖 AI-powered invoice data extraction (Pix2Struct)
+* 🔄 Multi-level approval workflow (Manager → Client)
+* 📊 Dashboard for tracking invoice status
+* 📧 Email-based onboarding (Supabase)
+* 💳 Simulated payment gateway integration
+* 👥 Role-based access control
 
 ---
 
 ## 👥 User Roles
 
-| Role | Access |
-|------|--------|
-| **Vendor** | Upload invoices, track status |
-| **Client** | Review, approve/reject, mark paid |
-| **Manager** | Full dashboard, invite vendors, analytics |
+| Role              | Portal        | Access                                                               |
+| ----------------- | ------------- | -------------------------------------------------------------------- |
+| Manager           | Vendor Portal | Invite accountants, review invoices, view analytics, manage settings |
+| Accountant        | Vendor Portal | Upload invoices                                                      |
+| Client Manager    | Client Portal | Approve or reject invoices                                           |
+| Client Accountant | Client Portal | Process payments                                                     |
+
+---
+
+## 🔄 Invoice Workflow
+
+```
+Accountant uploads PDF
+        ↓
+AI extracts invoice data
+        ↓
+Manager reviews → Accept / Reject
+        ↓ (if accepted)
+Client Manager → Approve / Reject
+        ↓ (if approved)
+Client Accountant → Payment (simulated)
+        ↓
+Completed
+```
+
+---
+
+## 🏗️ System Architecture
+
+```
+Frontend (React)
+        ↓
+Spring Boot Backend (REST APIs)
+        ↓
+PostgreSQL (Supabase)
+
+        ↓
+AI Service (FastAPI + Pix2Struct)
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- ⚛️ React + Vite
-- 🎨 Tailwind CSS
-- 🔐 Supabase Auth (email/password login)
+
+* React + Vite
+* Tailwind CSS
+* Supabase Auth
 
 ### Backend
-- ☕ Java Spring Boot
-- 🗄️ PostgreSQL (via Supabase)
-- 📧 Supabase email invite system
-- 🤖 AI invoice extraction (REST API)
 
----
+* Java Spring Boot
+* PostgreSQL (Supabase)
+* REST APIs
 
-## 👨‍💻 The Team
+### AI Service
 
-| Member | Position |
-|--------|----------|
-| Adarsh Priyadarshi | Backend + ML |
-| Abhinash Kumar Bej | Frontend |
-| Vivek SH | Backend |
-| Amaan Mushtaque | Frontend + ML |
+* FastAPI (Python)
+* Pix2Struct (Google)
+* pdf2image + poppler
+
 ---
 
 ## 📁 Project Structure
 
-This repo has **2 branches:**
+This repository contains two branches:
 
-| Branch | Contents |
-|--------|----------|
-| `main` | Backend — Java Spring Boot |
-| `frontend` | Frontend — React + Vite |
+| Branch     | Description           |
+| ---------- | --------------------- |
+| `main`     | Backend — Spring Boot |
+| `frontend` | Frontend — React      |
 
 ---
 
-## ⚙️ How to Run
+## ⚙️ Setup Instructions
 
-### 1. Clone the repo
-```bash
+### 1. Clone the Repository
+
+```
 git clone https://github.com/AKB2004/spendDock.git
 cd spendDock
 ```
 
+---
+
 ### 2. Run Backend (main branch)
-```bash
+
+```
 ./mvnw spring-boot:run
-# Runs on http://localhost:8080
 ```
 
-### 3. Run Frontend (frontend branch)
-```bash
+Runs on: http://localhost:8080
+
+---
+
+### 3. Run AI Service
+
+```
+pip install fastapi uvicorn python-multipart Pillow transformers torch pdf2image
+
+set POPPLER_PATH=YOUR_PATH
+
+uvicorn main:app --reload --port 8000
+```
+
+Runs on: http://localhost:8000
+
+---
+
+### 4. Run Frontend
+
+```
 git checkout frontend
 npm install
 npm run dev
-# Runs on http://localhost:5173
+```
+
+Runs on: http://localhost:5173
+
+---
+
+## 🔐 Environment Variables
+
+### Backend
+
+```
+spring.datasource.url=YOUR_DB_URL
+spring.datasource.username=YOUR_USERNAME
+spring.datasource.password=YOUR_PASSWORD
+supabase.url=YOUR_SUPABASE_URL
+supabase.service.key=YOUR_KEY
+ai.service.url=http://localhost:8000
 ```
 
 ---
 
-## 🔐 Environment Setup
+### Frontend (.env)
 
-### Backend — `src/main/resources/application.properties`
-```properties
-spring.datasource.url=YOUR_SUPABASE_DB_URL
-spring.datasource.username=YOUR_DB_USERNAME
-spring.datasource.password=YOUR_DB_PASSWORD
-supabase.url=YOUR_SUPABASE_URL
-supabase.service.key=YOUR_SERVICE_ROLE_KEY
-server.port=8080
-app.frontend.url=http://localhost:5173
+```
+VITE_SUPABASE_URL=YOUR_URL
+VITE_SUPABASE_ANON_KEY=YOUR_KEY
 ```
 
-### Frontend — `.env`
-```env
-VITE_SUPABASE_URL=YOUR_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
-```
+---
+
+## 👨‍💻 Team
+
+| Member             | Role          |
+| ------------------ | ------------- |
+| Adarsh Priyadarshi | Backend + ML  |
+| Abhinash Kumar Bej | Frontend      |
+| Vivek SH           | Backend       |
+| Amaan Mushtaque    | Frontend + ML |
 
 ---
 
